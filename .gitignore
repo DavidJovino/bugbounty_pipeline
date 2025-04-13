@@ -1,0 +1,29 @@
+# Ignorar pastas com dados sensíveis ou resultados
+bugbounty/
+bug_bounty_results/
+output_dir/
+
+# Ignorar arquivos que podem conter informações confidenciais
+*.key
+*.pem
+*.crt
+*.p12
+*.env
+*.json
+*.xlsx
+*.docx
+*.pdf
+
+# Ignorar arquivos temporários e do sistema
+*.log
+*.bak
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Ignorar pastas de ambientes e configurações locais
+__pycache__/
+.env/
+.venv/
+.idea/
+.vscode/
