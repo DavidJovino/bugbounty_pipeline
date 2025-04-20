@@ -1,6 +1,8 @@
 """
 Configurações globais para a pipeline de Bug Bounty.
 """
+import os
+TOOLS_DIR = os.getenv("TOOLS_DIR", "/app/tools")
 
 # Configurações gerais
 DEFAULT_THREADS = 10
@@ -45,8 +47,8 @@ MODULES = {
 
 # Configurações de diretórios
 DIRECTORIES = {
-    "tools": "~/tools",
-    "wordlists": "~/wordlists",
+    "tools": TOOLS_DIR,
+    "wordlists": os.getenv("WORDLISTS_DIR", "/app/wordlists"),
     "temp": "/tmp/bug_bounty"
 }
 

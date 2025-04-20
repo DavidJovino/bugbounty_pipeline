@@ -139,7 +139,7 @@ class BugBountyPipeline:
                     domain_name = active_path.parts[domain_index]
                 else:
                     self.logger.error("Não foi possível extrair o domínio do caminho fornecido.")
-                    return False # Ex: www.vulnweb.com
+                    return False
                 vuln_results = self.run_vuln_scan(self.args.scan_only, domain=domain_name)
                 
                 if not vuln_results or not vuln_results.get("success", False):
