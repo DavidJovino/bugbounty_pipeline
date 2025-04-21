@@ -240,7 +240,7 @@ class SubdomainRecon:
             
             # Ler subdomínios do arquivo
             if os.path.exists(tool_output):
-                with open(tool_output, "r") as f:
+                with open(tool_output, "r", encoding="utf-8", errors="ignore") as f:
                     for line in f:
                         subdomain = line.strip()
                         if subdomain:
@@ -248,7 +248,7 @@ class SubdomainRecon:
         
         # Salvar subdomínios consolidados
         subdomains_list = sorted(list(subdomains))
-        with open(output_file, "w") as f:
+        with open(output_file, "w", encoding="utf-8", errors="ignore") as f:
             for subdomain in subdomains_list:
                 f.write(f"{subdomain}\n")
         
@@ -274,14 +274,14 @@ class SubdomainRecon:
         if "httpx" not in self.available_tools:
             self.logger.warning("httpx não encontrado, não é possível verificar subdomínios ativos")
             # Copiar todos os subdomínios para o arquivo final
-            with open(output_file, "w") as f:
+            with open(output_file, "w", encoding="utf-8", errors="ignore") as f:
                 for subdomain in subdomains:
                     f.write(f"{subdomain}\n")
             return subdomains
         
         # Criar arquivo temporário com subdomínios
         temp_file = os.path.dirname(output_file) + "/temp_subdomains.txt"
-        with open(temp_file, "w") as f:
+        with open(temp_file, "w", encoding="utf-8", errors="ignore") as f:
             for subdomain in subdomains:
                 f.write(f"{subdomain}\n")
         
@@ -294,7 +294,7 @@ class SubdomainRecon:
         if result["success"]:
             # Ler subdomínios ativos
             if os.path.exists(output_file):
-                with open(output_file, "r") as f:
+                with open(output_file, "r", encoding="utf-8", errors="ignore") as f:
                     active_subdomains = [line.strip() for line in f if line.strip()]
             
             self.logger.info(f"Subdomínios ativos: {len(active_subdomains)}")
@@ -304,7 +304,7 @@ class SubdomainRecon:
             self.logger.debug(f"Erro: {result['stderr']}")
             
             # Copiar todos os subdomínios para o arquivo final
-            with open(output_file, "w") as f:
+            with open(output_file, "w", encoding="utf-8", errors="ignore") as f:
                 for subdomain in subdomains:
                     f.write(f"{subdomain}\n")
             active_subdomains = subdomains

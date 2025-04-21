@@ -8,7 +8,6 @@ services:
       dockerfile: dockerfile
     container_name: deivao-bugbounty
     volumes:
-      - .:/app
       - ./resultados:/app/bug_bounty_results
       - ./alvos.txt:/app/alvos.txt
       - ./wordlists:/app/wordlists  

@@ -1,7 +1,8 @@
+http://18.208.0.0/13 (Netblock) --> contains --> 18.215.71.186 (IPAddress)
+http://44.224.0.0/11 (Netblock) --> contains --> 44.238.29.244 (IPAddress)
 http://rest.vulnweb.com
 http://testasp.vulnweb.com
 http://testaspnet.vulnweb.com
 http://testhtml5.vulnweb.com
 http://testphp.vulnweb.com
-http://vulnweb.com
 http://www.vulnweb.com

@@ -169,7 +169,7 @@ class EndpointEnum:
             return None
         
         # Contar hosts ativos
-        with open(active_hosts_file, "r") as f:
+        with open(active_hosts_file, "r", encoding="utf-8", errors="ignore") as f:
             active_hosts = f.read().splitlines()
         
         self.logger.success(f"Encontrados {len(active_hosts)} hosts ativos")
@@ -208,7 +208,7 @@ class EndpointEnum:
             result = self.executor.execute(katana_cmd, timeout=self.timeout * 2, shell=True)
             
             if result["success"] and os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-                with open(output_file, 'r') as f:
+                with open(output_file, 'r', encoding="utf-8", errors="ignore") as f:
                     endpoints = [line.strip() for line in f if line.strip()]
                 self.logger.success(f"Katana encontrou {len(endpoints)} endpoints")
                 return True
@@ -225,7 +225,7 @@ class EndpointEnum:
             result = self.executor.execute(hak_cmd, timeout=self.timeout * 2, shell=True)
             
             if result["success"] and os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-                with open(output_file, 'r') as f:
+                with open(output_file, 'r', encoding="utf-8", errors="ignore") as f:
                     endpoints = [line.strip() for line in f if line.strip()]
                 self.logger.success(f"Hakrawler encontrou {len(endpoints)} endpoints")
                 return True
@@ -285,7 +285,7 @@ class EndpointEnum:
 
         else:  # waybackurls
             self.logger.info("Executando waybackurls por subdomínio (modo individual)")
-            with open(domains_file, "r") as f:
+            with open(domains_file, "r", encoding="utf-8", errors="ignore") as f:
                 domains = [line.strip() for line in f if line.strip()]
 
             temp_result_file = historical_output + ".tmp"
@@ -326,7 +326,7 @@ class EndpointEnum:
             return False
         
         # Contar URLs históricas
-        with open(historical_output, "r") as f:
+        with open(historical_output, "r", encoding="utf-8", errors="ignore") as f:
             urls = f.read().splitlines()
         
         self.logger.success(f"Encontradas {len(urls)} URLs históricas com {historical_tool}")
@@ -384,7 +384,7 @@ class EndpointEnum:
 
         
         # Ler hosts do arquivo
-        with open(hosts_file, "r") as f:
+        with open(hosts_file, "r", encoding="utf-8", errors="ignore") as f:
             hosts = f.read().splitlines()
         
         # Limitar número de hosts para fuzzing
@@ -448,7 +448,7 @@ class EndpointEnum:
                 return False
             
             # Contar diretórios
-            with open(output_file, "r") as f:
+            with open(output_file, "r", encoding="utf-8", errors="ignore") as f:
                 directories = f.read().splitlines()
             
             self.logger.success(f"Encontrados {len(directories)} diretórios com {fuzzer}")
@@ -476,7 +476,7 @@ class EndpointEnum:
         # Verificar se o arquivo de endpoints existe
         if not os.path.exists(endpoints_file) or os.path.getsize(endpoints_file) == 0:
             # Criar arquivo vazio
-            with open(endpoints_file, "w") as f:
+            with open(endpoints_file, "w", encoding="utf-8", errors="ignore") as f:
                 pass
             self.logger.warning("Nenhum endpoint encontrado")
         
@@ -526,19 +526,19 @@ class EndpointEnum:
                 self.endpoints = endpoints
         
         if os.path.exists(active_endpoints_file) and os.path.getsize(active_endpoints_file) > 0:
-            with open(active_endpoints_file, "r") as f:
+            with open(active_endpoints_file, "r", encoding="utf-8", errors="ignore") as f:
                 active_endpoints = f.read().splitlines()
                 active_endpoints_count = len(active_endpoints)
                 self.active_endpoints = active_endpoints
         
         if os.path.exists(directories_file) and os.path.getsize(directories_file) > 0:
-            with open(directories_file, "r") as f:
+            with open(directories_file, "r", encoding="utf-8", errors="ignore") as f:
                 directories = f.read().splitlines()
                 directories_count = len(directories)
                 self.directories = directories
         
         if os.path.exists(parameters_file) and os.path.getsize(parameters_file) > 0:
-            with open(parameters_file, "r") as f:
+            with open(parameters_file, "r", encoding="utf-8", errors="ignore") as f:
                 parameters = f.read().splitlines()
                 parameters_count = len(parameters)
                 self.parameters = parameters
