@@ -362,13 +362,26 @@ class EndpointEnum:
         # Arquivo temporário para resultados
         fuzzer_output = os.path.join(os.path.dirname(output_file), f"{fuzzer}_output.txt")
         
-        # Wordlist para fuzzing
-        wordlist = "/usr/share/wordlists/dirb/common.txt"
-        if not os.path.exists(wordlist):
-            wordlist = "/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt"
-            if not os.path.exists(wordlist):
-                self.logger.warning("Nenhuma wordlist encontrada, pulando fuzzing de diretórios")
-                return False
+        # Diretório base das wordlists (setado no Docker)
+        wordlists_dir = os.environ.get("WORDLISTS_DIR", "/app/wordlists")
+
+        # Caminhos alternativos
+        wordlist_candidates = [
+            os.path.join(wordlists_dir, "Discovery/Web-Content/common.txt"),
+            os.path.join(wordlists_dir, "Discovery/Web-Content/directory-list-2.3-medium.txt")
+        ]
+
+        # Verifica qual wordlist existe
+        wordlist = None
+        for candidate in wordlist_candidates:
+            if os.path.exists(candidate):
+                wordlist = candidate
+                break
+
+        if not wordlist:
+            self.logger.warning("Nenhuma wordlist encontrada, pulando fuzzing de diretórios")
+            return False
+
         
         # Ler hosts do arquivo
         with open(hosts_file, "r") as f:
@@ -507,7 +520,7 @@ class EndpointEnum:
         parameters_count = 0
         
         if os.path.exists(endpoints_file) and os.path.getsize(endpoints_file) > 0:
-            with open(endpoints_file, "r") as f:
+            with open(endpoints_file, "r", encoding="utf-8", errors="ignore") as f:
                 endpoints = f.read().splitlines()
                 endpoints_count = len(endpoints)
                 self.endpoints = endpoints

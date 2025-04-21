@@ -2,7 +2,7 @@
 Configurações globais para a pipeline de Bug Bounty.
 """
 import os
-TOOLS_DIR = os.getenv("TOOLS_DIR", "/app/tools")
+TOOLS_DIR = os.getenv("TOOLS_DIR", os.path.expanduser("~/tools"))
 
 # Configurações gerais
 DEFAULT_THREADS = 10

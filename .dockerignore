@@ -1,0 +1,36 @@
+# Ignorar dados de execução e resultados
+bugbounty/
+bug_bounty_results/
+output_dir/
+resultados/
+enum/
+recon/
+scan/
+
+# Arquivos sensíveis ou confidenciais
+*.key
+*.pem
+*.crt
+*.p12
+*.env
+*.json
+*.xlsx
+*.docx
+*.pdf
+
+# Logs, backups e temporários
+*.log
+*.bak
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Ambientes e configurações locais
+__pycache__/
+.env/
+.venv/
+.idea/
+.vscode/
+
+# Ambiente virtual local Python
+venv/

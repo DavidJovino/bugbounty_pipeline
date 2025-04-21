@@ -240,35 +240,24 @@ class BugBountyPipeline:
         
         # Verificar todas as ferramentas
         all_tools_status = self.tool_checker.check_all_tools()
-        
-        # Verificar se all_tools_status é um dicionário com as chaves esperadas
-        if not isinstance(all_tools_status, dict) or not all(key in all_tools_status for key in ["available", "missing", "alternatives"]):
-            self.logger.error("Formato de retorno inválido do verificador de ferramentas")
-            return False
-        
-        # Obter listas de ferramentas
-        available_tools = all_tools_status.get("available", [])
-        missing_tools = all_tools_status.get("missing", [])
-        alternatives = all_tools_status.get("alternatives", {})
-        
+        per_module = all(isinstance(v, dict) for v in all_tools_status.values())
+
         if not silent:
-            self.logger.info(f"Ferramentas disponíveis: {len(available_tools)}/{len(available_tools) + len(missing_tools)}")
-            
-            if missing_tools:
-                self.logger.warning(f"Ferramentas faltantes: {len(missing_tools)}")
-                self.logger.warning(f"Ferramentas faltantes: {', '.join(missing_tools)}")
-            
-            if alternatives:
-                self.logger.info(f"Alternativas disponíveis: {len(alternatives)}")
-                for tool, alt in alternatives.items():
-                    self.logger.info(f"  {tool} -> {alt}")
-            
-            # Exibir detalhes por módulo
-            for module, module_tools in all_tools_status.items():
-                self.logger.info(f"\nMódulo: {module}")
-                self.logger.info(f"  Disponíveis: {', '.join(module_tools['available']) if module_tools['available'] else 'Nenhuma'}")
-                self.logger.info(f"  Faltantes: {', '.join(module_tools['missing']) if module_tools['missing'] else 'Nenhuma'}")
-                self.logger.info(f"  Alternativas: {', '.join(module_tools['alternatives']) if module_tools['alternatives'] else 'Nenhuma'}")
+            if per_module:
+                for module, module_tools in all_tools_status.items():
+                    self.logger.info(f"\nMódulo: {module}")
+                    self.logger.info(f"  Disponíveis: {', '.join(module_tools['available']) if module_tools['available'] else 'Nenhuma'}")
+                    self.logger.info(f"  Faltantes: {', '.join(module_tools['missing']) if module_tools['missing'] else 'Nenhuma'}")
+                    self.logger.info(f"  Alternativas: {', '.join(module_tools['alternatives']) if module_tools['alternatives'] else 'Nenhuma'}")
+            else:
+                available = all_tools_status.get("available", [])
+                missing = all_tools_status.get("missing", [])
+                alternatives = all_tools_status.get("alternatives", {})
+
+                self.logger.info(f"\nResumo geral:")
+                self.logger.info(f"  Disponíveis: {', '.join(available) if available else 'Nenhuma'}")
+                self.logger.info(f"  Faltantes: {', '.join(missing) if missing else 'Nenhuma'}")
+                self.logger.info(f"  Alternativas: {', '.join(alternatives.keys()) if alternatives else 'Nenhuma'}")
         
         # Verificar ferramentas críticas
         critical_missing = self.tool_checker.get_critical_missing_tools()
@@ -294,11 +283,8 @@ class BugBountyPipeline:
         
         # Verificar ferramentas faltantes
         all_tools_status = self.tool_checker.check_all_tools()
-        missing_tools = []
-        
-        for module_tools in all_tools_status.values():
-            missing_tools.extend(module_tools["missing"])
-        
+        missing_tools = all_tools_status.get("missing", [])
+
         if not missing_tools:
             self.logger.success("Todas as ferramentas já estão instaladas")
             return True

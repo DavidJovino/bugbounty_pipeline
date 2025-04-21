@@ -1,0 +1,4 @@
+vulnweb.com (FQDN) --> ns_record --> ns3.eurodns.com (FQDN)
+vulnweb.com (FQDN) --> ns_record --> ns2.eurodns.com (FQDN)
+vulnweb.com (FQDN) --> ns_record --> ns1.eurodns.com (FQDN)
+vulnweb.com (FQDN) --> ns_record --> ns4.eurodns.com (FQDN)
