@@ -127,7 +127,7 @@ class VulnScan:
         nuclei_output = os.path.join(output_dir, "nuclei_results.json")
         
         # Executar Nuclei
-        command = f"nuclei -l {endpoints_file} -o {nuclei_output} -silent -c {self.threads}"
+        command = f"nuclei -l {endpoints_file} -o {nuclei_output} -silent -c {self.threads} -severity medium,high,critical -retries 3"
         result = self.executor.execute(command, timeout=self.timeout)
         
         if not result["success"]:
@@ -299,7 +299,7 @@ class VulnScan:
             output_file = os.path.join(sqlmap_output_dir, f"sqlmap_result_{endpoint_hash}.json")
             
             # Executar SQLMap
-            command = f"sqlmap -u '{endpoint}' --batch --level=1 --risk=1 --output-dir={sqlmap_output_dir} --forms --random-agent --threads={self.threads}"
+            command = f"sqlmap -u '{endpoint}' --batch --level=1 --risk=1 --output-dir={sqlmap_output_dir} --forms --random-agent --threads={self.threads} --keep-alive --disable-coloring"
             result = self.executor.execute(command, timeout=self.timeout)
             
             if not result["success"]:

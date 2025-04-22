@@ -31,6 +31,7 @@ class EndpointEnum:
             threads (int, optional): Número de threads para execução paralela
             timeout (int, optional): Timeout para comandos externos em segundos
         """
+
         self.logger = logger or Logger("endpoint_enum")
         self.executor = CommandExecutor(self.logger)
         self.tool_checker = ToolChecker(self.logger)
@@ -132,48 +133,63 @@ class EndpointEnum:
     def _check_active_hosts(self, hosts_file, output_dir):
         """
         Verifica quais hosts estão ativos usando httpx.
-        
-        Args:
-            hosts_file (str): Arquivo com lista de hosts
-            output_dir (str): Diretório de saída
-            
-        Returns:
-            str: Caminho para o arquivo de hosts ativos
         """
         self.logger.step("Verificando hosts ativos com httpx")
         
-        # Verificar se httpx está disponível
+        # Verificar se httpx está disponível e funcionando
         if "httpx" not in self.tools_status["available"]:
             self.logger.warning("httpx não está disponível, pulando verificação de hosts ativos")
             return hosts_file
         
-        # Verificar se o arquivo de hosts existe e é um arquivo (não diretório)
-        if not os.path.isfile(hosts_file):
-            self.logger.error(f"O caminho fornecido não é um arquivo válido: {hosts_file}")
+        # Testar se o httpx está funcionando
+        test_cmd = "httpx -silent -title -u http://example.com"
+        test_result = self.executor.execute(test_cmd, timeout=10)
+        if not test_result["success"]:
+            self.logger.error("HTTPX não está funcionando corretamente. Erro: " + test_result.get("stderr", "Desconhecido"))
             return None
-        
+
         # Arquivo de saída
         active_hosts_file = os.path.join(output_dir, "active_hosts.txt")
         
-        # Executar httpx
-        command = f"cat '{hosts_file}' | httpx -silent -threads {self.threads} -o '{active_hosts_file}'"
-        result = self.executor.execute(command, timeout=self.timeout, shell=True)
-        
-        if not result["success"]:
-            self.logger.error(f"Falha ao executar httpx: {result['stderr']}")
+        try:
+            # Comando mais robusto
+            command = [
+                "httpx",
+                "-l", hosts_file,
+                "-silent",
+                "-threads", str(self.threads),
+                "-retries", "2",
+                "-timeout", "10",
+                "-o", active_hosts_file,
+                "-status-code",
+                "-content-length",
+                "-title"
+            ]
+            
+            result = self.executor.execute(command, timeout=self.timeout * 2)
+            
+            if not result["success"]:
+                self.logger.error(f"Falha ao executar httpx: {result['stderr']}")
+                return None
+            
+            # Verificar resultados
+            if not os.path.exists(active_hosts_file):
+                self.logger.warning("Nenhum host ativo encontrado (arquivo de saída não criado)")
+                return None
+                
+            with open(active_hosts_file, "r", encoding="utf-8", errors="ignore") as f:
+                active_hosts = [line.strip() for line in f if line.strip()]
+                
+            if not active_hosts:
+                self.logger.warning("Nenhum host ativo encontrado (arquivo vazio)")
+                return None
+                
+            self.logger.success(f"Encontrados {len(active_hosts)} hosts ativos")
+            return active_hosts_file
+            
+        except Exception as e:
+            self.logger.error(f"Erro inesperado ao verificar hosts ativos: {str(e)}")
             return None
-        
-        # Verificar se o arquivo foi criado
-        if not os.path.exists(active_hosts_file) or os.path.getsize(active_hosts_file) == 0:
-            self.logger.warning("Nenhum host ativo encontrado")
-            return None
-        
-        # Contar hosts ativos
-        with open(active_hosts_file, "r", encoding="utf-8", errors="ignore") as f:
-            active_hosts = f.read().splitlines()
-        
-        self.logger.success(f"Encontrados {len(active_hosts)} hosts ativos")
-        return active_hosts_file
     
     def _run_crawler(self, hosts_file, output_file):
         """
@@ -488,19 +504,30 @@ class EndpointEnum:
         if not result["success"]:
             self.logger.error(f"Falha ao ordenar endpoints: {result['stderr']}")
         
-        # Verificar endpoints ativos com httpx
         if "httpx" in self.tools_status["available"]:
             self.logger.info("Verificando endpoints ativos com httpx")
-            command = f"cat {endpoints_file} | httpx -silent -threads {self.threads} -o {active_endpoints_file}"
-            result = self.executor.execute(command, timeout=self.timeout)
+            
+            # Usar timeout maior para muitos endpoints
+            current_timeout = max(self.timeout, len(self.endpoints) * 2)
+            
+            command = [
+                "httpx",
+                "-l", endpoints_file,
+                "-silent",
+                "-threads", str(self.threads),
+                "-retries", "1",
+                "-timeout", "15",
+                "-o", active_endpoints_file,
+                "-status-code"
+            ]
+            
+            result = self.executor.execute(command, timeout=current_timeout)
             
             if not result["success"]:
                 self.logger.error(f"Falha ao verificar endpoints ativos: {result['stderr']}")
-        else:
-            # Se httpx não estiver disponível, copiar todos os endpoints
-            command = f"cp {endpoints_file} {active_endpoints_file}"
-            self.executor.execute(command, timeout=10)
-            self.logger.warning("httpx não disponível, considerando todos os endpoints como ativos")
+                # Tentando fallback mais simples
+                simple_cmd = f"httpx -l {endpoints_file} -silent -o {active_endpoints_file}"
+                self.executor.execute(simple_cmd, timeout=current_timeout, shell=True)
         
         # Extrair parâmetros de URLs
         if os.path.exists(endpoints_file) and os.path.getsize(endpoints_file) > 0:
