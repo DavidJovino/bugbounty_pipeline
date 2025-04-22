@@ -21,7 +21,7 @@ class VulnScan:
     """
     Classe para escaneamento de vulnerabilidades em endpoints.
     """
-    def __init__(self, logger=None, threads=10, timeout=300):
+    def __init__(self, logger=None, threads=3, timeout=300):
         """
         Inicializa o escaneador de vulnerabilidades.
         
@@ -299,7 +299,7 @@ class VulnScan:
             output_file = os.path.join(sqlmap_output_dir, f"sqlmap_result_{endpoint_hash}.json")
             
             # Executar SQLMap
-            command = f"sqlmap -u '{endpoint}' --batch --level=1 --risk=1 --output-dir={sqlmap_output_dir} --forms --random-agent --threads={self.threads} -o --output-dir={output_file}"
+            command = f"sqlmap -u '{endpoint}' --batch --level=1 --risk=1 --output-dir={sqlmap_output_dir} --forms --random-agent --threads={self.threads}"
             result = self.executor.execute(command, timeout=self.timeout)
             
             if not result["success"]:
