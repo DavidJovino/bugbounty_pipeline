@@ -17,6 +17,7 @@ from core.logger import Logger
 from core.executor import CommandExecutor
 from tools.tool_checker import ToolChecker
 from config.tools import TOOLS, SYSTEM_DEPENDENCIES, PYTHON_DEPENDENCIES
+from config.settings import DIRECTORIES
 
 class ToolInstaller:
     """
@@ -34,7 +35,7 @@ class ToolInstaller:
         self.tool_checker = ToolChecker(self.logger)
         
         # Diretório de ferramentas
-        self.tools_dir = os.path.expanduser("~/tools")
+        self.tools_dir = DIRECTORIES["tools"]
         os.makedirs(self.tools_dir, exist_ok=True)
         
         # Diretório temporário
@@ -236,17 +237,20 @@ class ToolInstaller:
             self.logger.error(f"Pacote Go não definido para {tool_name}")
             return False
         
-        # Instalar ferramenta
+        # Instalar ferramenta com GOBIN=/app/tools
+        env = os.environ.copy()
+        env["GOBIN"] = self.tools_dir
         command = f"go install {package}@latest"
-        result = self.executor.execute(command, timeout=300, shell=True)
+        result = self.executor.execute(command, timeout=300, shell=True, env=env)
         
         if not result["success"]:
             self.logger.error(f"Falha ao instalar {tool_name} via Go: {result['stderr']}")
             return False
         
-        # Verificar se a ferramenta foi instalada
-        if not self.tool_checker.check_tool(tool_name):
-            self.logger.error(f"Ferramenta {tool_name} não foi instalada corretamente")
+        # Verificar se a ferramenta foi instalada no diretório esperado
+        tool_path = os.path.join(self.tools_dir, tool_info["command"])
+        if not os.path.exists(tool_path):
+            self.logger.error(f"Ferramenta {tool_name} não encontrada em {tool_path}")
             return False
         
         return True

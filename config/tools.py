@@ -178,7 +178,6 @@ TOOLS = {
         "alternatives": [],
         "description": "Ferramenta para extrair e analisar partes de URLs"
     },
-    
     # Ferramentas problemáticas (tratamento especial)
     "xxeinjector": {
         "command": "xxeinjector",
@@ -194,15 +193,6 @@ TOOLS = {
         "available_via_pip": False,
         "special_handling": True
     },
-    #"python_xxe_scanner": {
-    #   "command": "",
-    #    "package": "",
-    #    "install_method": "internal",
-    #    "required_for": [],
-    #    "alternatives": [],
-    #    "description": "Implementação interna em Python para teste de XXE",
-    #    "is_alternative_for": "xxeinjector"
-    #},
     "xsrfprobe": {
         "command": "xsrfprobe",
         "package": "xsrfprobe",
@@ -212,16 +202,7 @@ TOOLS = {
         "description": "Ferramenta moderna para teste de CSRF (Cross-Site Request Forgery)",
         "available_via_pip": True,
         "special_handling": False
-    },
-    #"python_csrf_scanner": {
-    #    "command": "",
-    #    "package": "",
-    #    "install_method": "internal",
-    #    "required_for": [],
-    #    "alternatives": [],
-    #    "description": "Implementação interna em Python para teste de CSRF",
-    #    "is_alternative_for": "xsrfprobe"
-    #}
+    }
 }
 
 # Ferramentas essenciais que devem estar presentes para o funcionamento básico

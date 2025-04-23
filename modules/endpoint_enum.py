@@ -31,6 +31,7 @@ class EndpointEnum:
             threads (int, optional): Número de threads para execução paralela
             timeout (int, optional): Timeout para comandos externos em segundos
         """
+
         self.logger = logger or Logger("endpoint_enum")
         self.executor = CommandExecutor(self.logger)
         self.tool_checker = ToolChecker(self.logger)
@@ -132,48 +133,63 @@ class EndpointEnum:
     def _check_active_hosts(self, hosts_file, output_dir):
         """
         Verifica quais hosts estão ativos usando httpx.
-        
-        Args:
-            hosts_file (str): Arquivo com lista de hosts
-            output_dir (str): Diretório de saída
-            
-        Returns:
-            str: Caminho para o arquivo de hosts ativos
         """
         self.logger.step("Verificando hosts ativos com httpx")
         
-        # Verificar se httpx está disponível
+        # Verificar se httpx está disponível e funcionando
         if "httpx" not in self.tools_status["available"]:
             self.logger.warning("httpx não está disponível, pulando verificação de hosts ativos")
             return hosts_file
         
-        # Verificar se o arquivo de hosts existe e é um arquivo (não diretório)
-        if not os.path.isfile(hosts_file):
-            self.logger.error(f"O caminho fornecido não é um arquivo válido: {hosts_file}")
+        # Testar se o httpx está funcionando
+        test_cmd = "httpx -silent -title -u http://example.com"
+        test_result = self.executor.execute(test_cmd, timeout=10)
+        if not test_result["success"]:
+            self.logger.error("HTTPX não está funcionando corretamente. Erro: " + test_result.get("stderr", "Desconhecido"))
             return None
-        
+
         # Arquivo de saída
         active_hosts_file = os.path.join(output_dir, "active_hosts.txt")
         
-        # Executar httpx
-        command = f"cat '{hosts_file}' | httpx -silent -threads {self.threads} -o '{active_hosts_file}'"
-        result = self.executor.execute(command, timeout=self.timeout, shell=True)
-        
-        if not result["success"]:
-            self.logger.error(f"Falha ao executar httpx: {result['stderr']}")
+        try:
+            # Comando mais robusto
+            command = [
+                "httpx",
+                "-l", hosts_file,
+                "-silent",
+                "-threads", str(self.threads),
+                "-retries", "2",
+                "-timeout", "10",
+                "-o", active_hosts_file,
+                "-status-code",
+                "-content-length",
+                "-title"
+            ]
+            
+            result = self.executor.execute(command, timeout=self.timeout * 2)
+            
+            if not result["success"]:
+                self.logger.error(f"Falha ao executar httpx: {result['stderr']}")
+                return None
+            
+            # Verificar resultados
+            if not os.path.exists(active_hosts_file):
+                self.logger.warning("Nenhum host ativo encontrado (arquivo de saída não criado)")
+                return None
+                
+            with open(active_hosts_file, "r", encoding="utf-8", errors="ignore") as f:
+                active_hosts = [line.strip() for line in f if line.strip()]
+                
+            if not active_hosts:
+                self.logger.warning("Nenhum host ativo encontrado (arquivo vazio)")
+                return None
+                
+            self.logger.success(f"Encontrados {len(active_hosts)} hosts ativos")
+            return active_hosts_file
+            
+        except Exception as e:
+            self.logger.error(f"Erro inesperado ao verificar hosts ativos: {str(e)}")
             return None
-        
-        # Verificar se o arquivo foi criado
-        if not os.path.exists(active_hosts_file) or os.path.getsize(active_hosts_file) == 0:
-            self.logger.warning("Nenhum host ativo encontrado")
-            return None
-        
-        # Contar hosts ativos
-        with open(active_hosts_file, "r") as f:
-            active_hosts = f.read().splitlines()
-        
-        self.logger.success(f"Encontrados {len(active_hosts)} hosts ativos")
-        return active_hosts_file
     
     def _run_crawler(self, hosts_file, output_file):
         """
@@ -208,7 +224,7 @@ class EndpointEnum:
             result = self.executor.execute(katana_cmd, timeout=self.timeout * 2, shell=True)
             
             if result["success"] and os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-                with open(output_file, 'r') as f:
+                with open(output_file, 'r', encoding="utf-8", errors="ignore") as f:
                     endpoints = [line.strip() for line in f if line.strip()]
                 self.logger.success(f"Katana encontrou {len(endpoints)} endpoints")
                 return True
@@ -225,7 +241,7 @@ class EndpointEnum:
             result = self.executor.execute(hak_cmd, timeout=self.timeout * 2, shell=True)
             
             if result["success"] and os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-                with open(output_file, 'r') as f:
+                with open(output_file, 'r', encoding="utf-8", errors="ignore") as f:
                     endpoints = [line.strip() for line in f if line.strip()]
                 self.logger.success(f"Hakrawler encontrou {len(endpoints)} endpoints")
                 return True
@@ -285,7 +301,7 @@ class EndpointEnum:
 
         else:  # waybackurls
             self.logger.info("Executando waybackurls por subdomínio (modo individual)")
-            with open(domains_file, "r") as f:
+            with open(domains_file, "r", encoding="utf-8", errors="ignore") as f:
                 domains = [line.strip() for line in f if line.strip()]
 
             temp_result_file = historical_output + ".tmp"
@@ -326,7 +342,7 @@ class EndpointEnum:
             return False
         
         # Contar URLs históricas
-        with open(historical_output, "r") as f:
+        with open(historical_output, "r", encoding="utf-8", errors="ignore") as f:
             urls = f.read().splitlines()
         
         self.logger.success(f"Encontradas {len(urls)} URLs históricas com {historical_tool}")
@@ -362,16 +378,29 @@ class EndpointEnum:
         # Arquivo temporário para resultados
         fuzzer_output = os.path.join(os.path.dirname(output_file), f"{fuzzer}_output.txt")
         
-        # Wordlist para fuzzing
-        wordlist = "/usr/share/wordlists/dirb/common.txt"
-        if not os.path.exists(wordlist):
-            wordlist = "/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt"
-            if not os.path.exists(wordlist):
-                self.logger.warning("Nenhuma wordlist encontrada, pulando fuzzing de diretórios")
-                return False
+        # Diretório base das wordlists (setado no Docker)
+        wordlists_dir = os.environ.get("WORDLISTS_DIR", "/app/wordlists")
+
+        # Caminhos alternativos
+        wordlist_candidates = [
+            os.path.join(wordlists_dir, "Discovery/Web-Content/common.txt"),
+            os.path.join(wordlists_dir, "Discovery/Web-Content/directory-list-2.3-medium.txt")
+        ]
+
+        # Verifica qual wordlist existe
+        wordlist = None
+        for candidate in wordlist_candidates:
+            if os.path.exists(candidate):
+                wordlist = candidate
+                break
+
+        if not wordlist:
+            self.logger.warning("Nenhuma wordlist encontrada, pulando fuzzing de diretórios")
+            return False
+
         
         # Ler hosts do arquivo
-        with open(hosts_file, "r") as f:
+        with open(hosts_file, "r", encoding="utf-8", errors="ignore") as f:
             hosts = f.read().splitlines()
         
         # Limitar número de hosts para fuzzing
@@ -435,7 +464,7 @@ class EndpointEnum:
                 return False
             
             # Contar diretórios
-            with open(output_file, "r") as f:
+            with open(output_file, "r", encoding="utf-8", errors="ignore") as f:
                 directories = f.read().splitlines()
             
             self.logger.success(f"Encontrados {len(directories)} diretórios com {fuzzer}")
@@ -463,7 +492,7 @@ class EndpointEnum:
         # Verificar se o arquivo de endpoints existe
         if not os.path.exists(endpoints_file) or os.path.getsize(endpoints_file) == 0:
             # Criar arquivo vazio
-            with open(endpoints_file, "w") as f:
+            with open(endpoints_file, "w", encoding="utf-8", errors="ignore") as f:
                 pass
             self.logger.warning("Nenhum endpoint encontrado")
         
@@ -475,19 +504,30 @@ class EndpointEnum:
         if not result["success"]:
             self.logger.error(f"Falha ao ordenar endpoints: {result['stderr']}")
         
-        # Verificar endpoints ativos com httpx
         if "httpx" in self.tools_status["available"]:
             self.logger.info("Verificando endpoints ativos com httpx")
-            command = f"cat {endpoints_file} | httpx -silent -threads {self.threads} -o {active_endpoints_file}"
-            result = self.executor.execute(command, timeout=self.timeout)
+            
+            # Usar timeout maior para muitos endpoints
+            current_timeout = max(self.timeout, len(self.endpoints) * 2)
+            
+            command = [
+                "httpx",
+                "-l", endpoints_file,
+                "-silent",
+                "-threads", str(self.threads),
+                "-retries", "1",
+                "-timeout", "15",
+                "-o", active_endpoints_file,
+                "-status-code"
+            ]
+            
+            result = self.executor.execute(command, timeout=current_timeout)
             
             if not result["success"]:
                 self.logger.error(f"Falha ao verificar endpoints ativos: {result['stderr']}")
-        else:
-            # Se httpx não estiver disponível, copiar todos os endpoints
-            command = f"cp {endpoints_file} {active_endpoints_file}"
-            self.executor.execute(command, timeout=10)
-            self.logger.warning("httpx não disponível, considerando todos os endpoints como ativos")
+                # Tentando fallback mais simples
+                simple_cmd = f"httpx -l {endpoints_file} -silent -o {active_endpoints_file}"
+                self.executor.execute(simple_cmd, timeout=current_timeout, shell=True)
         
         # Extrair parâmetros de URLs
         if os.path.exists(endpoints_file) and os.path.getsize(endpoints_file) > 0:
@@ -507,25 +547,25 @@ class EndpointEnum:
         parameters_count = 0
         
         if os.path.exists(endpoints_file) and os.path.getsize(endpoints_file) > 0:
-            with open(endpoints_file, "r") as f:
+            with open(endpoints_file, "r", encoding="utf-8", errors="ignore") as f:
                 endpoints = f.read().splitlines()
                 endpoints_count = len(endpoints)
                 self.endpoints = endpoints
         
         if os.path.exists(active_endpoints_file) and os.path.getsize(active_endpoints_file) > 0:
-            with open(active_endpoints_file, "r") as f:
+            with open(active_endpoints_file, "r", encoding="utf-8", errors="ignore") as f:
                 active_endpoints = f.read().splitlines()
                 active_endpoints_count = len(active_endpoints)
                 self.active_endpoints = active_endpoints
         
         if os.path.exists(directories_file) and os.path.getsize(directories_file) > 0:
-            with open(directories_file, "r") as f:
+            with open(directories_file, "r", encoding="utf-8", errors="ignore") as f:
                 directories = f.read().splitlines()
                 directories_count = len(directories)
                 self.directories = directories
         
         if os.path.exists(parameters_file) and os.path.getsize(parameters_file) > 0:
-            with open(parameters_file, "r") as f:
+            with open(parameters_file, "r", encoding="utf-8", errors="ignore") as f:
                 parameters = f.read().splitlines()
                 parameters_count = len(parameters)
                 self.parameters = parameters

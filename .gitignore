@@ -2,6 +2,7 @@
 bugbounty/
 bug_bounty_results/
 output_dir/
+resultados/
 
 # Ignorar arquivos que podem conter informações confidenciais
 *.key

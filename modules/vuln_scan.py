@@ -21,7 +21,7 @@ class VulnScan:
     """
     Classe para escaneamento de vulnerabilidades em endpoints.
     """
-    def __init__(self, logger=None, threads=10, timeout=300):
+    def __init__(self, logger=None, threads=3, timeout=300):
         """
         Inicializa o escaneador de vulnerabilidades.
         
@@ -127,7 +127,7 @@ class VulnScan:
         nuclei_output = os.path.join(output_dir, "nuclei_results.json")
         
         # Executar Nuclei
-        command = f"nuclei -l {endpoints_file} -o {nuclei_output} -json -silent -c {self.threads}"
+        command = f"nuclei -l {endpoints_file} -o {nuclei_output} -silent -c {self.threads} -severity medium,high,critical -retries 3"
         result = self.executor.execute(command, timeout=self.timeout)
         
         if not result["success"]:
@@ -299,7 +299,7 @@ class VulnScan:
             output_file = os.path.join(sqlmap_output_dir, f"sqlmap_result_{endpoint_hash}.json")
             
             # Executar SQLMap
-            command = f"sqlmap -u '{endpoint}' --batch --level=1 --risk=1 --output-dir={sqlmap_output_dir} --forms --random-agent --threads={self.threads} -o --json-output={output_file}"
+            command = f"sqlmap -u '{endpoint}' --batch --level=1 --risk=1 --output-dir={sqlmap_output_dir} --forms --random-agent --threads={self.threads} --keep-alive --disable-coloring"
             result = self.executor.execute(command, timeout=self.timeout)
             
             if not result["success"]:
@@ -463,7 +463,7 @@ class VulnScan:
         dalfox_output = os.path.join(output_dir, "dalfox_results.json")
         
         # Executar Dalfox
-        command = f"dalfox file {endpoints_with_params_file} -o {dalfox_output} -format json -silence -threads {self.threads}"
+        command = f"dalfox file {endpoints_with_params_file} -o {dalfox_output} --report-format json -silence -threads {self.threads}"
         result = self.executor.execute(command, timeout=self.timeout)
         
         if not result["success"]:
